@@ -1,0 +1,6 @@
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+random2>=1.0.1
+datetime>=5.0.0
+optimizely-opal-opal-tools-sdk>=0.1.1.dev0
