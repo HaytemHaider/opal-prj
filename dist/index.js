@@ -182,7 +182,7 @@ async function content_density_evaluator(parameters) {
             required: false
         }
     ]
-})(sgcgreeting);
+})(sgc_greeting);
 (0, opal_tools_sdk_1.tool)({
     name: 'sgc_todays_date',
     description: 'Returns today\'s date in the specified format',
