@@ -150,6 +150,144 @@ async function content_density_evaluator(parameters) {
   };
 }
 
+async function accessibility_surface_check(parameters) {
+  const { url } = parameters;
+  // Fetch the page HTML
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+  const html = await res.text();
+
+  // Count <h1> elements
+  const h1Matches = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi) || [];
+  const h1Count = h1Matches.length;
+
+  // Count <img> tags missing usable alt text
+  // Rule: <img> with no alt= OR alt="" is considered missing
+  const imgTags = html.match(/<img\b[^>]*>/gi) || [];
+  let imagesMissingAlt = 0;
+  for (const imgTag of imgTags) {
+    const altMatchDouble = imgTag.match(/\balt\s*=\s*"([^"]*)"/i);
+    const altMatchSingle = imgTag.match(/\balt\s*=\s*'([^']*)'/i);
+    const altValue = altMatchDouble
+      ? altMatchDouble[1]
+      : altMatchSingle
+      ? altMatchSingle[1]
+      : null;
+    if (altValue === null || altValue.trim() === "") {
+      imagesMissingAlt++;
+    }
+  }
+
+  // Count unlabeled <button> elements
+  // We treat a button as "unlabeled" if:
+  // - There's no visible text between <button>...</button>
+  // - AND no aria-label attribute
+  const buttonRegex = /<button\b[^>]*>([\s\S]*?)<\/button>/gi;
+  const buttonBlocks = [];
+  let btnMatch;
+  while ((btnMatch = buttonRegex.exec(html)) !== null) {
+    buttonBlocks.push(btnMatch[0]); // entire <button>...</button> block
+  }
+
+  let unlabeledButtons = 0;
+  for (const block of buttonBlocks) {
+    // extract inner text of button by stripping tags
+    const innerMatch = /<button\b[^>]*>([\s\S]*?)<\/button>/i.exec(block);
+    const innerHtml = innerMatch ? innerMatch[1] : "";
+    const visibleText = innerHtml
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const ariaLabelMatchDouble = block.match(/\baria-label\s*=\s*"([^"]*)"/i);
+    const ariaLabelMatchSingle = block.match(/\baria-label\s*=\s*'([^']*)'/i);
+    const ariaVal = ariaLabelMatchDouble
+      ? ariaLabelMatchDouble[1]
+      : ariaLabelMatchSingle
+      ? ariaLabelMatchSingle[1]
+      : null;
+
+    if ((!visibleText || visibleText.length === 0) && (!ariaVal || ariaVal.length === 0)) {
+      unlabeledButtons++;
+    }
+  }
+
+  // Heading order check:
+  // We walk all <h1>..<h6> in appearance order and flag big jumps
+  const headingRegex = /<(h[1-6])\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  const headingLevels = [];
+  let hMatch;
+  while ((hMatch = headingRegex.exec(html)) !== null) {
+    const tagName = hMatch[1].toLowerCase(); // "h2", etc.
+    const level = parseInt(tagName.replace("h", ""), 10);
+    headingLevels.push(level);
+  }
+
+  let headingOrderIssues = 0;
+  for (let i = 1; i < headingLevels.length; i++) {
+    const prev = headingLevels[i - 1];
+    const curr = headingLevels[i];
+    // We consider a "jump" if it skips more than 2 levels
+    // e.g. h2 -> h5
+    if (curr - prev > 2) {
+      headingOrderIssues++;
+    }
+  }
+
+  // Score heuristic (0–100)
+  let accessibilityScore = 100;
+  if (h1Count === 0) accessibilityScore -= 10;
+  if (h1Count > 1) accessibilityScore -= 10;
+  accessibilityScore -= imagesMissingAlt * 2;
+  accessibilityScore -= unlabeledButtons * 3;
+  accessibilityScore -= headingOrderIssues * 5;
+  if (accessibilityScore < 0) accessibilityScore = 0;
+
+  // Human-readable notes for the marketer / content owner
+  const notes = [];
+
+  if (h1Count === 0) {
+    notes.push("No <h1> found — every page should have a single main heading.");
+  } else if (h1Count > 1) {
+    notes.push("Multiple <h1> elements found — usually you only want one.");
+  } else {
+    notes.push("Single <h1> present ✅");
+  }
+
+  if (imagesMissingAlt > 0) {
+    notes.push(`${imagesMissingAlt} image(s) missing alt text.`);
+  } else {
+    notes.push("All images appear to include alt text ✅");
+  }
+
+  if (unlabeledButtons > 0) {
+    notes.push(
+      `${unlabeledButtons} <button> element(s) have no visible text or aria-label.`
+    );
+  } else {
+    notes.push("All buttons appear to have labels or aria-labels ✅");
+  }
+
+  if (headingOrderIssues > 0) {
+    notes.push(
+      `${headingOrderIssues} heading level jump(s) detected (e.g. h2 → h5).`
+    );
+  } else {
+    notes.push("Heading level progression mostly looks consistent ✅");
+  }
+
+  // Final structured result
+  return {
+    url,
+    h1Count,
+    imagesMissingAlt,
+    unlabeledButtons,
+    headingOrderIssues,
+    accessibilityScore,
+    notes
+  };
+}
+
 // Register the tools using decorators with explicit parameter definitions
 (0, opal_tools_sdk_1.tool)({
     name: 'content_density_evaluator',
@@ -163,6 +301,20 @@ async function content_density_evaluator(parameters) {
         },
     ]
 })(content_density_evaluator);
+
+// Register the tools using decorators with explicit parameter definitions
+(0, opal_tools_sdk_1.tool)({
+    name: 'accessibility_surface_check',
+    description: 'Analyses a web page for basics of accessibility',
+    parameters: [
+        {
+            name: 'url',
+            type: opal_tools_sdk_1.ParameterType.String,
+            description: 'URL to analyse',
+            required: true
+        },
+    ]
+})(accessibility_surface_check);
 
 // Register the tools using decorators with explicit parameter definitions
 (0, opal_tools_sdk_1.tool)({
