@@ -11,7 +11,7 @@ const toolsService = new ToolsService(app);
 // Interfaces for tool parameters
 interface GreetingParameters {
   name: string;
-  language?: string;  // 'swedish' | 'english' | 'spanish' | 'french' | ...
+  language?: string;  // 'swedish' | 'english' | 'spanish' | 'french' | 'arabic' | ...
   timezone?: string;  // IANA tz like 'Europe/Stockholm'; defaults to server tz
   now?: string;       // ISO date string for testing, e.g. '2025-11-03T08:30:00'
 }
@@ -23,11 +23,9 @@ interface DateParameters {
 /** ---------- Time helpers ---------- */
 
 function getZonedDate(nowISO?: string, timeZone?: string) {
-  // Construct a Date corresponding to 'nowISO' (if provided), otherwise 'new Date()'
   const base = nowISO ? new Date(nowISO) : new Date();
-  // If a timezone is supplied, compute the equivalent local time there using Intl
   if (!timeZone) return base;
-  // Build parts to reconstruct a local date-time string in the target time zone
+
   const fmt = new Intl.DateTimeFormat('en-GB', {
     timeZone,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -66,15 +64,41 @@ function getDaySegment(d: Date): DaySegment {
 
 /** ---------- Greeting catalog (many variants) ---------- */
 
-type LangKey = 'swedish' | 'english' | 'spanish' | 'french';
+type LangKey =
+  | 'swedish' | 'english' | 'spanish' | 'french'
+  | 'arabic' | 'finnish' | 'italian' | 'hindi'
+  | 'urdu' | 'turkish' | 'thai' | 'serbian';
+
 const LANG_ALIASES: Record<string, LangKey> = {
-  sv: 'swedish', swe: 'swedish', swedish: 'swedish',
-  en: 'english', eng: 'english', english: 'english',
-  es: 'spanish', spa: 'spanish', spanish: 'spanish',
-  fr: 'french', fra: 'french', fre: 'french', french: 'french',
+  // Swedish
+  sv: 'swedish', swe: 'swedish', sv_se: 'swedish', swedish: 'swedish', svenska: 'swedish',
+  // English
+  en: 'english', eng: 'english', en_us: 'english', en_gb: 'english', english: 'english',
+  // Spanish
+  es: 'spanish', spa: 'spanish', es_es: 'spanish', es_la: 'spanish', spanish: 'spanish', español: 'spanish',
+  // French
+  fr: 'french', fra: 'french', fre: 'french', french: 'french', français: 'french',
+
+  // Arabic
+  ar: 'arabic', ara: 'arabic', arabic: 'arabic', 'العربية': 'arabic',
+  // Finnish
+  fi: 'finnish', fin: 'finnish', finnish: 'finnish', suomi: 'finnish',
+  // Italian
+  it: 'italian', ita: 'italian', italian: 'italian', italiano: 'italian',
+  // Hindi
+  hi: 'hindi', hin: 'hindi', hindi: 'hindi', 'हिन्दी': 'hindi',
+  // Urdu
+  ur: 'urdu', urd: 'urdu', urdu: 'urdu', 'اردو': 'urdu',
+  // Turkish
+  tr: 'turkish', tur: 'turkish', turkish: 'turkish', türkçe: 'turkish',
+  // Thai
+  th: 'thai', tha: 'thai', thai: 'thai', 'ไทย': 'thai',
+  // Serbian (Latin; map common tags)
+  sr: 'serbian', srp: 'serbian', 'sr-latn': 'serbian', serbian: 'serbian', srpski: 'serbian',
 };
 
 const GREETINGS: Record<LangKey, Record<DaySegment | 'generic', string[]>> = {
+  /* ---------------- Swedish ---------------- */
   swedish: {
     early_morning: [
       'God morgon, {name}!',
@@ -122,6 +146,8 @@ const GREETINGS: Record<LangKey, Record<DaySegment | 'generic', string[]>> = {
       'Tjena {name}!',
     ],
   },
+
+  /* ---------------- English ---------------- */
   english: {
     early_morning: [
       'Early good morning, {name}!',
@@ -169,6 +195,8 @@ const GREETINGS: Record<LangKey, Record<DaySegment | 'generic', string[]>> = {
       'Hey {name}!',
     ],
   },
+
+  /* ---------------- Spanish ---------------- */
   spanish: {
     early_morning: [
       '¡Buenos días tempraneros, {name}!',
@@ -181,7 +209,7 @@ const GREETINGS: Record<LangKey, Record<DaySegment | 'generic', string[]>> = {
       '¡Buen día, {name}!',
     ],
     forenoon: [
-      '¡Buen resto de la mañana, {name}!',
+      '¡Buena mañana, {name}!',
       '¡Casi hora de comer, {name}!',
       '¡Que vaya bien la mañana, {name}!',
     ],
@@ -216,6 +244,8 @@ const GREETINGS: Record<LangKey, Record<DaySegment | 'generic', string[]>> = {
       '¡Qué tal, {name}!',
     ],
   },
+
+  /* ---------------- French ---------------- */
   french: {
     early_morning: [
       'Très bon matin, {name} !',
@@ -263,6 +293,334 @@ const GREETINGS: Record<LangKey, Record<DaySegment | 'generic', string[]>> = {
       'Coucou {name} !',
     ],
   },
+
+  /* ---------------- Arabic ---------------- */
+  arabic: {
+    early_morning: [
+      'صباح الخير المبكر يا {name}!',
+      'انهض وتألق يا {name}!',
+    ],
+    morning: [
+      'صباح الخير يا {name}!',
+      'أهلاً {name}، أتمنى أن تكون صباحك رائعاً.',
+    ],
+    forenoon: [
+      'صباح متأخر سعيد يا {name}!',
+      'اقترب وقت الغداء يا {name}!',
+    ],
+    midday: [
+      'شهية طيبة يا {name}!',
+      'وقت الغداء يا {name}—استمتع!',
+    ],
+    afternoon: [
+      'مساء الخير يا {name}!',
+      'أتمنى لك ظهيرة موفقة يا {name}.',
+    ],
+    evening: [
+      'مساء الخير يا {name}!',
+      'أتمنى لك مساءً هادئاً يا {name}.',
+    ],
+    late_evening: [
+      'مساء متأخر يا {name}—كل شيء على ما يرام؟',
+      'هل حان وقت الاسترخاء يا {name}؟',
+    ],
+    night: [
+      'تصبح على خير يا {name}!',
+      'أحلام سعيدة يا {name}.',
+    ],
+    generic: [
+      'مرحباً {name}!',
+      'أهلاً {name}!',
+      'تحياتي لك يا {name}!',
+    ],
+  },
+
+  /* ---------------- Finnish ---------------- */
+  finnish: {
+    early_morning: [
+      'Hyvää varhaisaamua, {name}!',
+      'Ylös ja menoksi, {name}!',
+    ],
+    morning: [
+      'Hyvää huomenta, {name}!',
+      'Moi {name}! Toivottavasti aamu sujuu hyvin.',
+    ],
+    forenoon: [
+      'Hyvää aamupäivää, {name}!',
+      'Kohta lounas, {name}!',
+    ],
+    midday: [
+      'Hyvää lounasaikaa, {name}!',
+      'Mukavaa keskipäivää, {name}!',
+    ],
+    afternoon: [
+      'Hyvää iltapäivää, {name}!',
+      'Tsemppiä iltapäivään, {name}!',
+    ],
+    evening: [
+      'Hyvää iltaa, {name}!',
+      'Rentouttavaa iltaa, {name}!',
+    ],
+    late_evening: [
+      'Myöhäinen ilta, {name}—miten menee?',
+      'Alkaako olla rauhoittumisen aika, {name}?',
+    ],
+    night: [
+      'Hyvää yötä, {name}!',
+      'Nuku hyvin, {name}.',
+    ],
+    generic: [
+      'Hei {name}!',
+      'Moikka {name}!',
+      'Terve {name}!',
+    ],
+  },
+
+  /* ---------------- Italian ---------------- */
+  italian: {
+    early_morning: [
+      'Buon mattino presto, {name}!',
+      'Su, {name}, si comincia!',
+    ],
+    morning: [
+      'Buongiorno, {name}!',
+      'Ciao {name}! Spero che la mattina vada bene.',
+    ],
+    forenoon: [
+      'Buona tarda mattinata, {name}!',
+      'Quasi ora di pranzo, {name}!',
+    ],
+    midday: [
+      'Buon pranzo, {name}!',
+      'Buon mezzogiorno, {name}!',
+    ],
+    afternoon: [
+      'Buon pomeriggio, {name}!',
+      'Forza per il pomeriggio, {name}!',
+    ],
+    evening: [
+      'Buona sera, {name}!',
+      'Passa una serata tranquilla, {name}!',
+    ],
+    late_evening: [
+      'Tarda serata, {name}—tutto bene?',
+      'È ora di rilassarsi, {name}?',
+    ],
+    night: [
+      'Buona notte, {name}!',
+      'Dormi bene, {name}.',
+    ],
+    generic: [
+      'Ciao {name}!',
+      'Salve {name}!',
+      'Ehi {name}!',
+    ],
+  },
+
+  /* ---------------- Hindi ---------------- */
+  hindi: {
+    early_morning: [
+      'सुबह-सुबह शुभ प्रभात, {name}!',
+      'उठो और चमको, {name}!',
+    ],
+    morning: [
+      'सुप्रभात, {name}!',
+      'हाय {name}! आशा है सुबह अच्छी जा रही है।',
+    ],
+    forenoon: [
+      'देर सुबह की शुभकामनाएँ, {name}!',
+      'लगभग लंच का समय है, {name}!',
+    ],
+    midday: [
+      'लंच टाइम, {name}—आनंद लें!',
+      'शुभ मध्याह्न, {name}!',
+    ],
+    afternoon: [
+      'शुभ दोपहर, {name}!',
+      'उत्पादक दोपहर रहे, {name}!',
+    ],
+    evening: [
+      'शुभ संध्या, {name}!',
+      'आपकी शाम सुकूनभरी हो, {name}।',
+    ],
+    late_evening: [
+      'देर शाम है, {name}—सब ठीक?',
+      'आराम का समय हो गया, {name}?',
+    ],
+    night: [
+      'शुभ रात्रि, {name}!',
+      'अच्छी नींद लें, {name}।',
+    ],
+    generic: [
+      'नमस्ते, {name}!',
+      'हाय {name}!',
+      'नमस्कार {name}!',
+    ],
+  },
+
+  /* ---------------- Urdu ---------------- */
+  urdu: {
+    early_morning: [
+      'صبح بخیر، {name}!',
+      'اٹھو اور چمکو، {name}!',
+    ],
+    morning: [
+      'صبح بخیر {name}!',
+      'السلام علیکم {name}! صبح کیسی گزر رہی ہے؟',
+    ],
+    forenoon: [
+      'خوشگوار صبح، {name}!',
+      'تقریباً دوپہر کا وقت، {name}!',
+    ],
+    midday: [
+      'لنچ کا وقت ہے، {name}—مزے سے کھائیں!',
+      'دوپہر بخیر، {name}!',
+    ],
+    afternoon: [
+      'دوپہر بخیر {name}!',
+      'پیداواری دوپہر رہے، {name}!',
+    ],
+    evening: [
+      'شام بخیر {name}!',
+      'آرام دہ شام گزرے، {name}۔',
+    ],
+    late_evening: [
+      'دیر رات کی شام، {name}—سب ٹھیک؟',
+      'آرام کرنے کا وقت ہے، {name}؟',
+    ],
+    night: [
+      'شب بخیر {name}!',
+      'میٹھے خواب، {name}۔',
+    ],
+    generic: [
+      'سلام {name}!',
+      'ہیلو {name}!',
+      'خوش آمدید {name}!',
+    ],
+  },
+
+  /* ---------------- Turkish ---------------- */
+  turkish: {
+    early_morning: [
+      'Erken günaydın, {name}!',
+      'Hadi başlayalım, {name}!',
+    ],
+    morning: [
+      'Günaydın, {name}!',
+      'Merhaba {name}! Sabahın nasıl gidiyor?',
+    ],
+    forenoon: [
+      'Öğlene doğru iyi günler, {name}!',
+      'Neredeyse öğle vakti, {name}!',
+    ],
+    midday: [
+      'Afiyet olsun, {name}!',
+      'İyi öğleler, {name}!',
+    ],
+    afternoon: [
+      'İyi öğleden sonralar, {name}!',
+      'Verimli bir öğleden sonra dilerim, {name}!',
+    ],
+    evening: [
+      'İyi akşamlar, {name}!',
+      'Sakin bir akşam dilerim, {name}!',
+    ],
+    late_evening: [
+      'Geç akşam, {name}—her şey yolunda mı?',
+      'Yavaş yavaş dinlenme zamanı, {name}?',
+    ],
+    night: [
+      'İyi geceler, {name}!',
+      'Tatlı rüyalar, {name}.',
+    ],
+    generic: [
+      'Merhaba {name}!',
+      'Selam {name}!',
+      'Hey {name}!',
+    ],
+  },
+
+  /* ---------------- Thai ---------------- */
+  thai: {
+    early_morning: [
+      'สวัสดีตอนเช้าแต่เช้าเลยนะ {name}!',
+      'ตื่นมาลุยกันเลย {name}!',
+    ],
+    morning: [
+      'สวัสดีตอนเช้า {name}!',
+      'ไฮ {name}! ขอให้เช้านี้เป็นวันที่ดีนะ',
+    ],
+    forenoon: [
+      'สายๆ เช้านี้เป็นไงบ้าง {name}!',
+      'ใกล้ถึงเวลาเที่ยงแล้วนะ {name}!',
+    ],
+    midday: [
+      'มื้อเที่ยงให้อร่อยนะ {name}!',
+      'สวัสดีตอนเที่ยง {name}!',
+    ],
+    afternoon: [
+      'สวัสดีตอนบ่าย {name}!',
+      'ขอให้ช่วงบ่ายได้ผลลัพธ์ดีๆ นะ {name}!',
+    ],
+    evening: [
+      'สวัสดีตอนเย็น {name}!',
+      'ขอให้ค่ำนี้สบายๆ นะ {name}',
+    ],
+    late_evening: [
+      'ดึกแล้วนะ {name}—โอเคไหม?',
+      'ได้เวลาพักผ่อนหรือยัง {name}?',
+    ],
+    night: [
+      'ราตรีสวัสดิ์ {name}!',
+      'ฝันดีนะ {name}',
+    ],
+    generic: [
+      'สวัสดี {name}!',
+      'ไฮ {name}!',
+      'เฮ้ {name}!',
+    ],
+  },
+
+  /* ---------------- Serbian (Latin) ---------------- */
+  serbian: {
+    early_morning: [
+      'Rano jutro, {name}!',
+      'Ustaj i zasijaj, {name}!',
+    ],
+    morning: [
+      'Dobro jutro, {name}!',
+      'Zdravo {name}! Nadam se da ti jutro lepo protiče.',
+    ],
+    forenoon: [
+      'Dobar kasni jutarnji deo, {name}!',
+      'Skoro je vreme za ručak, {name}!',
+    ],
+    midday: [
+      'Prijatan ručak, {name}!',
+      'Dobar podne, {name}!',
+    ],
+    afternoon: [
+      'Dobar dan, {name}!',
+      'Produktivno popodne želim, {name}!',
+    ],
+    evening: [
+      'Dobro veče, {name}!',
+      'Neka ti veče bude mirno, {name}!',
+    ],
+    late_evening: [
+      'Pozno veče, {name}—sve u redu?',
+      'Vreme je da se opustiš, {name}?',
+    ],
+    night: [
+      'Laku noć, {name}!',
+      'Sanjaj lepo, {name}.',
+    ],
+    generic: [
+      'Zdravo {name}!',
+      'Ćao {name}!',
+      'Hej {name}!',
+    ],
+  },
 };
 
 function choose<T>(arr: T[]): T {
@@ -280,8 +638,13 @@ function formatGreeting(tpl: string, name: string) {
 async function greeting(parameters: GreetingParameters) {
   const { name, language, timezone, now } = parameters;
 
-  // Resolve language (include Swedish + aliases)
-  const langs: LangKey[] = ['swedish', 'english', 'spanish', 'french'];
+  // Resolve language (now includes many aliases)
+  const langs: LangKey[] = [
+    'swedish', 'english', 'spanish', 'french',
+    'arabic', 'finnish', 'italian', 'hindi',
+    'urdu', 'turkish', 'thai', 'serbian'
+  ];
+
   let normalized: LangKey | undefined;
   if (language) {
     const key = language.trim().toLowerCase();
@@ -289,7 +652,7 @@ async function greeting(parameters: GreetingParameters) {
   }
   const selectedLanguage: LangKey = normalized || choose(langs);
 
-  // Time-of-day detection (defaults to server tz; can be forced via 'timezone' or 'now')
+  // Time-of-day detection
   const zonedNow = getZonedDate(now, timezone);
   const segment = getDaySegment(zonedNow);
 
@@ -339,7 +702,8 @@ async function todaysDate(parameters: DateParameters) {
 // Register the tools using decorators with explicit parameter definitions
 tool({
   name: 'GreetingsTimeOfDay',
-  description: 'Greets a person in Swedish, English, Spanish, or French with a time-of-day aware message (lots of variants).',
+  description:
+    'Greets a person with a time-of-day aware message (lots of variants). Languages: swedish, english, spanish, french, arabic, finnish, italian, hindi, urdu, turkish, thai, serbian. Accepts aliases like sv/en/es/fr/ar/fi/it/hi/ur/tr/th/sr.',
   parameters: [
     {
       name: 'name',
@@ -350,7 +714,8 @@ tool({
     {
       name: 'language',
       type: ParameterType.String,
-      description: 'Language for greeting (swedish | english | spanish | french). Defaults to random; accepts aliases like sv/en/es/fr.',
+      description:
+        'Language for greeting. Defaults to random; accepts aliases (e.g., sv, en, es, fr, ar, fi, it, hi, ur, tr, th, sr) and some native names.',
       required: false
     },
     {
