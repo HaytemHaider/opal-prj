@@ -369,7 +369,7 @@ tool({
 })(greeting);
 
 tool({
-  name: 'todays-date',
+  name: 'todays-date-ISO',
   description: 'Returns today\'s date in the specified format',
   parameters: [
     {
