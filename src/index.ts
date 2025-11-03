@@ -338,7 +338,7 @@ async function todaysDate(parameters: DateParameters) {
 
 // Register the tools using decorators with explicit parameter definitions
 tool({
-  name: 'greeting',
+  name: 'Greetings tool depnd. on the time of day (multiLang)',
   description: 'Greets a person in Swedish, English, Spanish, or French with a time-of-day aware message (lots of variants).',
   parameters: [
     {
